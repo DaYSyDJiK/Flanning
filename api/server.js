@@ -1,3 +1,4 @@
+require("./src/models");
 const express = require('express');
 const app = express();
 const port = 3000;
@@ -17,6 +18,7 @@ app.use("/api/employee", employeeRoute);
 const startServer = async () => {
   try {
     await sequelize.authenticate()
+    await sequelize.sync({ alter: true });
     console.log("✅ Connexion à la base de données réussie")
 
     app.listen(port, () => {

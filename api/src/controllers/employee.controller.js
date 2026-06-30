@@ -1,27 +1,43 @@
-const  employees = require("../data/employees");
+const { Employee } = require("../models");
 
-const getEmployees = (req, res) => {
 
-    res.json(employees);
+const getEmployees = async (req, res) => {
 
+    try {
+        const employees = await Employee.findAll();
+        return res.json(employees);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({
+            message: "Erreur interne du serveur"
+        });
+    };
 };
 
-const getEmployeeById = (req, res) => {
+const getEmployeeById = async (req, res) => {
+
     const id = Number(req.params.id);
 
-    // on cherche l'employee
-    const employee = employees.find((employee) => {
-        return employee.id === id;
-    });
+    try {
+        // on cherche l'employee
+        const employee = await Employee.findByPk(id)
+        if (!employee) {
+            return res.status(404).json({
+                message: "L'employé n'existe pas"
+            });
+        };
 
-    if (!employee) {
-        return res.status(404).json({ message: "Employee introuvable" });
-    }
+        return res.json(employee);
 
-    res.json(employee);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({
+            message: "Erreur interne du serveur"
+        });
+    };
 };
 
-const createEmployee = (req, res) => {
+const createEmployee = async (req, res) => {
     const { firstname, lastname } = req.body;
 
     // Validation des champs
@@ -31,47 +47,58 @@ const createEmployee = (req, res) => {
         });
     }
 
-    const lastEmployee = employees[employees.length - 1];
-    const newEmployeeId = lastEmployee.id + 1;
-
     const newEmployee = {
-        id: newEmployeeId,
         firstname, // raccourci de firstname: firstname
         lastname, // raccourci de lastname: lastname
     };
 
-    // Rajout dans le tableau des employés
-    employees.push(newEmployee);
+    try {
 
-    res.status(201).json({
-        message: "Employee créé avec succès",
-    });
-};
+        const employee = await Employee.create(newEmployee);
+
+        return res.status(201).json(employee);
+
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({
+            message: "Erreur interne du serveur"
+        });
+
+    };
+}
 
 
-const deleteEmployee = (req, res) => {
+const deleteEmployee = async (req, res) => {
 
     const id = Number(req.params.id);
 
-    const employeeIndex = employees.findIndex((employee) => {
-        return employee.id === id;
-    });
+    try {
 
-    if (employeeIndex === -1) {
-        return res.status(400).json({
-            message: "Impossible de trouver cet employee"
+        const employee = await Employee.findByPk(id);
+
+        if (!employee) {
+            return res.status(404).json({
+                message: "Employé introuvable"
+            });
+        }
+
+        await employee.destroy();
+
+        return res.status(200).json({
+            message: "Employé supprimé avec succés"
         });
-    } else {
-        employees.splice(employeeIndex, 1);
-        res.status(200).json({
-            message: "Employee supprimé avec succès",
+
+    } catch (err) {
+        console.error(err);
+        return res.status(500).json({
+            message: "Erreur interne du serveur"
         });
-    }
+    };
 
 };
 
 
-const editEmployee = (req, res) => {
+const editEmployee = async (req, res) => {
 
     const id = Number(req.params.id);
     const { firstname, lastname } = req.body;
@@ -82,24 +109,33 @@ const editEmployee = (req, res) => {
             message: "Veuillez remplir tous les champs"
         });
     }
+    try {
+        // on cherche l'employee
+        const employee = await Employee.findByPk(id);
 
-    // on cherche l'employee
-    const employee = employees.find((employee) => {
-        return employee.id === id;
-    });
+        if (!employee) {
+            return res.status(404).json({
+                message: "Employee introuvable"
+            });
+        }
 
-    if (!employee) {
-        return res.status(404).json({ message: "Employee introuvable" });
-    }
 
-    
         employee.firstname = firstname; // req.body.firstname
         employee.lastname = lastname; // req.body.lastname
 
-        res.status(200).json({
+        await employee.save();
+
+        return res.status(200).json({
             message: "Employé modifié avec succés"
         });
-       
+
+    } catch (err) {
+        console.error(err);
+        return res.status(400).json({
+            message: "Erreur interne du serveur"
+        });
+    };
+
 };
 
 module.exports = { getEmployees, getEmployeeById, createEmployee, deleteEmployee, editEmployee };
